@@ -1,48 +1,24 @@
+/*
+ *  OBD-trucker
+ *  A data logger and display for powertrain information.
+ *  Written by Carsten Thue-Bludworth
+ *  March, 2021
+ */
+
+#include "System.h"
 #include "PCMParam.h"
 #include "ThermoCouple.h"
 #include "UI.h"
 #include "TextWidget.h"
 #include <SPI.h>
 
-float calcTFT(int v)
-{
-  float a = (v & 0xFF00) >> 8;
-  float b = (v & 0x00FF);
-  return (((a*256.0 + b) * -0.0036) + 212.98);
-}
-
-float calcEOT(int v)
-{
-  float a = (v & 0xFF00) >> 8;
-  float b = (v & 0x00FF);
-  return ((((a*256.0) + b) / 100.0) - 40.0);
-}
-
-float calcBAR(int v)
-{
-  float a = (v & 0xFF00) >> 8;
-  float b = (v & 0x00FF);
-  return (((a * 256.0) + b) * 0.03625);
-}
-
-//float (*calcMAP)(int) = *calcBAR;
-
-// Constructors for PCM sensors
-PCMParam TFT = PCMParam("TFT", SENSOR_TYPE_OBJECT_TEMPERATURE, "2211BD",
-                        0.0, 250.0, 0.1, &calcTFT, 0);
-PCMParam EOT = PCMParam("EOT", SENSOR_TYPE_OBJECT_TEMPERATURE, "221310",
-                        0.0, 250.0, 0.1, &calcEOT, 1);
-//Parameter MFD = Parameter("MFD", "221412");
-//Parameter IPR = Parameter("IPR", "221434");
-PCMParam MAP = PCMParam("MAP", SENSOR_TYPE_PRESSURE, "221440",
-                         0.0, 45.0, 0.1, &calcBAR, 4);
-PCMParam BAR = PCMParam("BAR", SENSOR_TYPE_PRESSURE, "221442",
-                        10.0, 15.0, 0.1, &calcBAR, 5);
-//Parameter EBP = Parameter("EBP", "221445\r");
-//Parameter ICP = Parameter("ICP", "221446\r");
-
-// Constructor for external sensors:
-ThermoCouple EGT = ThermoCouple();
+System sys = System();
+extern PCMParam TFT;
+extern PCMParam EOT;
+extern PCMParam MAP;
+extern PCMParam BAR;
+extern PCMParam EBP;
+extern ThermoCouple EGT;
  
 // UI Constructor
 UI ui = UI();
@@ -59,20 +35,13 @@ TextWidget tw3(&ui.screen, r3);
 TextWidget tw4(&ui.screen, r4);
 
 void setup(void) {
+  sys.begin();
   ui.init();
-  
-  // initialize the static serial comms object for parameters
-  PCMParam::initComms();
-  EGT.init();
 }
 
 void loop(void) {
-
-  EOT.update();
-  TFT.update();
-  EGT.update();
-  BAR.update();
-  MAP.update();
+  sys.updateSensors();
+  sys.log();
 
   UI::clearBuffer();
 
@@ -82,6 +51,7 @@ void loop(void) {
   EOT.getSensor(&s);
   EOT.getEvent(&e);
   tw1.renderContent(s, e);
+
 
   TFT.getSensor(&s);
   TFT.getEvent(&e);

@@ -5,6 +5,7 @@
 #include "Widget.h"
 #include <U8g2lib.h>
 #include "UI.h"
+#include "System.h"
 #include <Adafruit_Sensor.h>
 
 // allows for values up to 999.9
@@ -24,6 +25,7 @@ class TextWidget : public Widget
     coordinate_t _cursor;
     int _font_height;
     void print_centered(char *str);
+    void setFont(const uint8_t *font);
 };
 
 #endif
