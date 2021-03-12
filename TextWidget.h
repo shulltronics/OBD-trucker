@@ -9,7 +9,10 @@
 #include <Adafruit_Sensor.h>
 
 // allows for values up to 999.9
-#define DISPLAY_VALUE_CHAR_WIDTH 6
+#define DISPLAY_VALUE_CHAR_WIDTH 7
+
+// the number of pixels of margin around the region
+#define REGION_PX_MARGIN 4
 
 class TextWidget : public Widget
 {

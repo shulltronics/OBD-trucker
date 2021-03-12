@@ -1,6 +1,8 @@
 #include "System.h"
 
-/*************** PCMParam calculators ****************************************/
+/*************** PCMParam calculators ****************************************
+ * All inputs are 16 bit values returned by the PCM
+ * All outputs are floats in proper Adafruit_Sensor units */
 float calcEBP(int v)
 {
   float a = (v & 0xFF00) >> 8;
@@ -12,7 +14,7 @@ float calcTFT(int v)
 {
   float a = (v & 0xFF00) >> 8;
   float b = (v & 0x00FF);
-  return (((a*256.0 + b) * -0.0036) + 212.98);
+  return (((a*256.0 + b) * -0.002) + 100.54);
 }
 
 float calcEOT(int v)
@@ -29,22 +31,38 @@ float calcBAR(int v)
   return (((a * 256.0) + b) * 0.03625);
 }
 
+float calcICP(int v)
+{
+  float a = (v & 0xFF00) >> 8;
+  float b = (v & 0x00FF);
+  return ((a*256.0 + b) * 0.56);
+}
+
+float calcIPR(int v)
+{
+  float a = (v & 0xFF00) >> 8;
+  return (a*0.39063);
+}
+
 
 /*************** PCMParam objects ********************************************/
 PCMParam TFT = PCMParam("TFT", SENSOR_TYPE_OBJECT_TEMPERATURE, "2211BD",
                         0.0, 250.0, 0.1, &calcTFT, 0);
 PCMParam EOT = PCMParam("EOT", SENSOR_TYPE_OBJECT_TEMPERATURE, "221310",
                         0.0, 250.0, 0.1, &calcEOT, 1);
-//Parameter MFD = Parameter("MFD", "221412");
-//Parameter IPR = Parameter("IPR", "221434");
+/*PCMParam MFD = PCMParam("MFD", SENSOR_TYPE_, "221412",
+                        0.0, );
+PCMParam IPR = PCMParam("IPR", SENSOR_TYPE_, "221434",
+                        0.0, 250.0, 0.1, &calcIPR, 3);
+*/
 PCMParam MAP = PCMParam("MAP", SENSOR_TYPE_PRESSURE, "221440",
                          0.0, 45.0, 0.1, &calcBAR, 4);
 PCMParam BAR = PCMParam("BAR", SENSOR_TYPE_PRESSURE, "221442",
                         10.0, 15.0, 0.1, &calcBAR, 5);
 PCMParam EBP = PCMParam("EBP", SENSOR_TYPE_PRESSURE, "221445",
                          0.0, 55.0, 0.1, &calcEBP, 6);
-//Parameter EBP = Parameter("EBP", "221445\r");
-//Parameter ICP = Parameter("ICP", "221446\r");
+PCMParam ICP = PCMParam("ICP", SENSOR_TYPE_PRESSURE, "221446",
+                         0.0, 3000.0, 0.1, &calcICP, 7);
 
 
 /*************** Other sensor objects **************************************/
@@ -157,7 +175,7 @@ void System::begin()
   Serial.println(_timeStamp);
 
   if (!SD.begin(SD_CARD_CS))
-  {
+{
     Serial.println("SD card init error.");
   }
 
@@ -168,6 +186,10 @@ void System::begin()
 
 }
 
+/*
+ * Update the values in the sensor objects
+ * TODO: put these in a loop?
+ */
 void System::updateSensors()
 {
   TFT.update();
@@ -176,6 +198,8 @@ void System::updateSensors()
   BAR.update();
   EBP.update();
   EGT.update();
+  EBP.update();
+  ICP.update();
 }
 
 bool System::log()
