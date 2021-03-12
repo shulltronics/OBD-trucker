@@ -40,7 +40,7 @@ class UI
     static U8G2_UC1610_EA_DOGXL160_F_4W_HW_SPI screen;
     static TouchScreen ts;
     UI();
-    void init();
+    void begin();
     void update();
     static void clear() {screen.clear();}
     static void clearBuffer() {screen.clearBuffer();}

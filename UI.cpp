@@ -1,4 +1,6 @@
 #include "UI.h"
+#include "System.h"
+#include "TextWidget.h"
 #include "Arduino.h"
 #include <EEPROM.h>
 
@@ -21,7 +23,14 @@ U8G2_UC1610_EA_DOGXL160_F_4W_HW_SPI UI::screen(U8G2_R2, /* cs=*/ LCD_CS_PIN, /* 
 #define YM 4  // can be a digital pin
 TouchScreen UI::ts = TouchScreen(XP, YP, XM, YM, 388);
 
-#define UI_UPDATE_PERIOD 50
+#define UI_UPDATE_PERIOD 500
+
+extern PCMParam TFT;
+extern PCMParam EOT;
+extern PCMParam MAP;
+extern PCMParam BAR;
+extern PCMParam EBP;
+extern ThermoCouple EGT;
 
 /*************** HELPER FUNCTIONS ***************/
 
@@ -62,6 +71,17 @@ region_t UI::screen_region_boundaries[NUMBER_OF_REGIONS] =
   {{107, 53}, {160,104}},
 };
 
+// These are the widgets and their regions
+region_t r1 = {{0, 0}, {80, 50}};
+region_t r2 = {{80, 0}, {160, 50}};
+region_t r3 = {{0, 50}, {80, 104}};
+region_t r4 = {{80, 50}, {160, 104}};
+//Graph g = Graph(&TFT, &ui.screen);
+TextWidget tw1(&UI::screen, r1);
+TextWidget tw2(&UI::screen, r2);
+TextWidget tw3(&UI::screen, r3);
+TextWidget tw4(&UI::screen, r4);
+
 /*************** Class Methods ******************/
 
 UI::UI()
@@ -69,7 +89,7 @@ UI::UI()
   
 }
 
-void UI::init()
+void UI::begin()
 {
   analogReadResolution(10); // needed for the touchscreen library
   screen.begin();
@@ -95,12 +115,71 @@ void UI::init()
 
 void UI::update()
 {
+  /*
   TouchLocation tl = getTouch();
   displayTSRegion(tl);
   screen.setCursor(0, 10);
   screen.print(tl);
   screen.sendBuffer();
-  //touchTest();
+  */
+
+  UI::clearBuffer();
+
+  sensor_t s;
+  sensors_event_t e;
+  
+  EOT.getSensor(&s);
+  EOT.getEvent(&e);
+  tw1.renderContent(s, e);
+
+
+  TFT.getSensor(&s);
+  TFT.getEvent(&e);
+  tw2.renderContent(s, e);
+
+  EGT.getSensor(&s);
+  EGT.getEvent(&e);
+  tw4.renderContent(s, e);
+
+  sensor_t bar_sensor;
+  sensors_event_t bar_event;
+  BAR.getSensor(&bar_sensor);
+  BAR.getEvent(&bar_event);
+
+  sensor_t map_sensor;
+  sensors_event_t map_event;
+  MAP.getSensor(&map_sensor);
+  MAP.getEvent(&map_event);
+
+  sensor_t bst_sensor;
+  strncpy (bst_sensor.name, "BST", sizeof(bst_sensor.name) - 1);
+  bst_sensor.name[sizeof(bst_sensor.name)- 1] = 0;
+  bst_sensor.version     = 1;
+  bst_sensor.sensor_id   = 0;
+  bst_sensor.type        = SENSOR_TYPE_PRESSURE;
+  bst_sensor.min_delay   = 0;
+  bst_sensor.min_value   = 0.0;
+  bst_sensor.max_value   = 45.0;
+  bst_sensor.resolution  = 0.1;
+  
+  sensors_event_t event;
+  event.version = sizeof(sensors_event_t);
+  event.sensor_id = 0;
+  event.type = SENSOR_TYPE_PRESSURE;
+  event.timestamp = millis();
+  event.pressure = map_event.pressure - bar_event.pressure;
+
+  tw3.renderContent(bst_sensor, event);
+  
+  /* TODO: move this to an OBDWidget
+  char resp[16];
+  EOT.getOBD(resp);
+  UI::screen.setCursor(0, 10);
+  UI::screen.clearBuffer();
+  UI::screen.print(resp);
+  UI::screen.sendBuffer();
+  */
+  
   delay(UI_UPDATE_PERIOD);
 }
 
